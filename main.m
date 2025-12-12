@@ -8,12 +8,12 @@ numGenerations=50;
 
 ResultDirectoryName=['results_' char(datetime('now','Format','yyyy-MM-dd_HH-mm-ss'))];
 
-% checkParamNames = {'numAgents','matchesPerGen','roundsPerMatch','learningRate','survivalRate','mutationRate','temperature','matchPattern','appearanceRatio','appearanceBonus','evolutionPattern','enableLearningRateEvolution','Rm_Mg','mu_alpha','apps'};
+checkParamNames = {'numAgents','matchesPerGen','roundsPerMatch','learningRate','survivalRate','mutationRate','temperature','matchPattern','appearanceRatio','appearanceBonus','evolutionPattern','enableLearningRateEvolution','Rm_Mg','mu_alpha','apps'};
 % chaeckParamNames = {'appearanceRatio' 'appearanceBonus' 'apps'};
 % checkParamNames = {'learningRate'};
-% checkParamNames = {'apps'};
+% checkParamNames = {'Rm_Mg'};
 
-checkParamNames = {'matchPattern'};
+% checkParamNames = {'matchPattern'};
 
 for II = 1:length(checkParamNames)
 
