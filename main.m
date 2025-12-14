@@ -13,7 +13,7 @@ checkParamNames = {'numAgents','matchesPerGen','roundsPerMatch','learningRate','
 % checkParamNames = {'learningRate'};
 % checkParamNames = {'Rm_Mg'};
 
-% checkParamNames = {'matchPattern'};
+% checkParamNames = {'Rm_Mg','mu_alpha','apps'};
 
 for II = 1:length(checkParamNames)
 
