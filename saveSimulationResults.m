@@ -119,4 +119,116 @@ saveas(fig2, [FNAME '_v.jpg']);
 
 close(fig2);
 
+
+
+%% ================================
+% Multiple comparison (Wilcoxon + FDR)
+% ================================
+
+dataGroups = coopRateByParamTrial';  % [trial × condition]
+numGroups  = size(dataGroups, 2);
+
+pairResults = {};
+pvals = [];
+pairIdx = [];
+
+idx = 0;
+for i = 1:numGroups-1
+    for j = i+1:numGroups
+        idx = idx + 1;
+        data_i = dataGroups(:, i);
+        data_j = dataGroups(:, j);
+
+        % Wilcoxon rank-sum test
+        p = ranksum(data_i, data_j);
+
+        pvals(idx) = p;
+        pairIdx(idx, :) = [i, j];
+
+        pairResults{idx, 1} = labelStrings{i};
+        pairResults{idx, 2} = labelStrings{j};
+        pairResults{idx, 3} = p;
+    end
+end
+
+% ---- FDR correction (Benjamini–Hochberg) ----
+pvals = pvals(:); 
+[p_sorted, order] = sort(pvals);
+m = length(pvals);
+qvals = zeros(size(p_sorted));
+
+for k = 1:m
+   qvals(k) = p_sorted(k) * m / k;
+end
+qvals = min(qvals, 1);
+qvals = flipud(cummin(flipud(qvals)));
+
+% recover original order
+qvals_corrected = zeros(size(qvals));
+qvals_corrected(order) = qvals;
+
+% qvals_corrected = mafdr(pvals, 'BHFDR', true);
+
+%% ================================
+% Display results in Command Window
+% ================================
+
+fprintf('\n=== Multiple Comparison Results (Wilcoxon + FDR) ===\n');
+fprintf('%-20s %-20s %-12s %-12s\n', 'Condition A', 'Condition B', 'p-value', 'q-value');
+
+for k = 1:m
+    fprintf('%-20s %-20s %-.4e   %-.4e\n', ...
+        pairResults{k,1}, pairResults{k,2}, pvals(k), qvals_corrected(k));
+end
+
+%% ================================
+% Save multiple comparison results as TeX text (copy-paste ready)
+% ================================
+
+texTxtFile = [texFNAME '_mc.tex'];
+fid = fopen(texTxtFile, 'w');
+
+fprintf(fid, '\\begin{tabular}{llcc}\n');
+fprintf(fid, '\\hline\n');
+fprintf(fid, 'Condition A & Condition B & $p$-value & $q$-value \\\\\n');
+fprintf(fid, '\\hline\n');
+
+for k = 1:m
+    condA = labelStrings{pairIdx(k,1)};
+    condB = labelStrings{pairIdx(k,2)};
+    fprintf(fid, '%s & %s & %.3e & %.3e \\\\\n', ...
+        condA, condB, pvals(k), qvals_corrected(k));
+end
+
+fprintf(fid, '\\hline\n');
+fprintf(fid, '\\end{tabular}\n');
+
+fclose(fid);
+
+descStats = cell(numGroups, 4);  % label, mean, std, median
+
+for i = 1:numGroups
+    data = dataGroups(:, i);
+    descStats{i,1} = labelStrings{i};
+    descStats{i,2} = mean(data);
+    descStats{i,3} = std(data);
+    descStats{i,4} = median(data);
+end
+texStatsFile = [texFNAME '_desc.tex'];
+fid = fopen(texStatsFile, 'w');
+
+fprintf(fid, '\\begin{tabular}{lccc}\n');
+fprintf(fid, '\\hline\n');
+fprintf(fid, 'Condition & Mean & Std. & Median \\\\\n');
+fprintf(fid, '\\hline\n');
+
+for i = 1:numGroups
+    fprintf(fid, '%s & %.3f & %.3f & %.3f \\\\\n', ...
+        descStats{i,1}, descStats{i,2}, descStats{i,3}, descStats{i,4});
+end
+
+fprintf(fid, '\\hline\n');
+fprintf(fid, '\\end{tabular}\n');
+fclose(fid);
+
 end

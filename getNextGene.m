@@ -1,23 +1,38 @@
-function NEWAgent=getNextGene(Mutation,rewardMatrix,Agent,Alpha,survivalRate,evolutionPattern,initialAppearanceRatio,AppBonus,enableAlphaEvolution)
+function NEWAgent=getNextGene(Mutation,rewardMatrix,Agent,Alpha,survivalRate,evolutionPattern,initialAppearanceRatio,AppBonus,enableAlphaEvolution,enableFixedStrategies)
 
 NAgent=length(Agent);
 ikinokori=randperm(NAgent);
 
+if enableFixedStrategies > 0
+    parentCandidates = 2:NAgent;  % ID=1 を固定戦略と仮定
+else
+    parentCandidates = 1:NAgent;
+end
+
+
+
 for I=1:NAgent
+    if enableFixedStrategies > 0 && I == 1
+        NEWAgent(I) = Agent(I);
+        continue;
+    end
+
     if I<=NAgent*survivalRate
         NEWAgent(I).ALP=Agent(ikinokori(I)).ALP;
         NEWAgent(I).DEFQ=Agent(ikinokori(I)).DEFQ;
-        NEWAgent(I).APP=Agent(I).APP;
+        NEWAgent(I).APP=Agent(ikinokori(I)).APP;
     else
-        PICKUP=cumsum(sum(rewardMatrix,2)/(sum(rewardMatrix,"all")));
-        tempP=rand();
-        OYAA=sum(PICKUP<tempP)+1;
-
+        rewardSum = sum(rewardMatrix(parentCandidates, parentCandidates), 2);
+        if sum(rewardSum) == 0
+            prob = ones(size(rewardSum)) / numel(rewardSum);  % 一様分布
+        else
+            prob = rewardSum / sum(rewardSum);
+        end
+        pickup = cumsum(prob);
+        OYAA = parentCandidates(sum(pickup < rand()) + 1);
         OYAB=OYAA;
         while OYAA==OYAB
-            PICKUP=cumsum(sum(rewardMatrix,2)/(sum(rewardMatrix,"all")));
-            tempP=rand();
-            OYAB=sum(PICKUP<tempP)+1;
+            OYAB = parentCandidates(sum(pickup < rand()) + 1);
         end
 
         if enableAlphaEvolution==1
@@ -79,7 +94,9 @@ for I=1:NAgent
     NEWAgent(I).Q(I,:)=[0,0];
 end
 
+% NApp
 
+% NEWAgent(NAgent).Q
 if NApp > 0
     for I = 1:NAgent
         NBonus=NApp-NEWAgent(I).APP;
@@ -97,4 +114,7 @@ if NApp > 0
         NEWAgent(I).Q(NEWAgent(I).Q > 5) = 5;
         NEWAgent(I).Q(NEWAgent(I).Q < 0) = 0;
     end
+end
+
+% NEWAgent(NAgent).Q
 end

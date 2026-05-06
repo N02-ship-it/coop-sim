@@ -12,25 +12,24 @@ base = struct( ...
     'appearanceRatio',  0, ...
     'appearanceBonus',  0, ...
     'evolutionPattern', 1, ...
-    'enableLearningRateEvolution', 0  ...
+    'enableLearningRateEvolution', 0,  ...
+    'enableFixedStrategies', 0 ...
     );
+numParams = numel(fieldnames(base));
 
 grids = struct( ...
     'roundsVals',  [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15], ...
     'matchesVals', [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15], ...
     'muVals',      logspace(-3, -1, 10), ...
     'alphaVals',   [0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45 0.5], ... 
-    'appRatioVals', [0.1 0.2 0.3 0.4 0.5 0.6 0.7], ...
-    'appBonusVals',  [1 2 3 4 5 6 7 8 9 10] ...
+    'appRatioVals', [0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9], ...
+    'appBonusVals',  [0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9] ...
     );
 
-
+name2idx = struct('numAgents',1,'matchesPerGen',2,'roundsPerMatch',3,'learningRate',4,'survivalRate',5,'mutationRate',6,'temperature',7,'matchPattern',8,'appearanceRatio',9,'appearanceBonus',10,'evolutionPattern',11,'enableLearningRateEvolution',12,'enableFixedStrategies', 13);
 switch char(kind)
     case {'Rm_Mg' 'mu_alpha' 'apps'}
 
-        name2idx = struct( ...
-            'numAgents',1,'matchesPerGen',2,'roundsPerMatch',3,'learningRate',4,'survivalRate',5,'mutationRate',6,'temperature',7, ...
-            'matchPattern',8,'appearanceRatio',9,'appearanceBonus',10,'evolutionPattern',11,'enableLearningRateEvolution',12);
 
         switch char(kind)
             case 'Rm_Mg'
@@ -57,22 +56,21 @@ switch char(kind)
         patternType = kind;
         labelStrings =[];
 
-    case {'numAgents','matchesPerGen','roundsPerMatch','learningRate','survivalRate','mutationRate','temperature','matchPattern','appearanceRatio','appearanceBonus','evolutionPattern','enableLearningRateEvolution'}
-        name2idx = struct( ...
-            'numAgents',1,'matchesPerGen',2,'roundsPerMatch',3,'learningRate',4,'survivalRate',5,'mutationRate',6,'temperature',7,'matchPattern',8,'appearanceRatio',9,'appearanceBonus',10,'evolutionPattern',11,'enableLearningRateEvolution',12);
+    case {'numAgents','matchesPerGen','roundsPerMatch','learningRate','survivalRate','mutationRate','temperature','matchPattern','appearanceRatio','appearanceBonus','evolutionPattern','enableLearningRateEvolution','enableFixedStrategies'}
+        
         idx  = name2idx.(kind);
 
         tmpVals = defaultSingleVals(kind);
         vals    = tmpVals(:);
 
         if strcmp(kind, 'appearanceRatio')
-            base.appearanceBonus = 1;
+            base.appearanceBonus = 0.5;
         elseif strcmp(kind, 'appearanceBonus')
-            base.appearanceRatio = 0.2;
+            base.appearanceRatio = 0.5;
         end
 
         numPP = numel(vals);
-        paramList    = zeros(numPP, 12);
+        paramList    = zeros(numPP, numParams);
         paramStrings = cell(numPP, 1);
         labelStrings = cell(numPP, 1);
 
@@ -89,7 +87,7 @@ switch char(kind)
         patternType = char(kind);
 
     otherwise
-        error('未知の指定 "%s" です。''mu_SR''、''Rm_Mg''、またはパラメータ名 ''N''|''NM_G''|''NIPD_M''|''Alpha''|''survivalRate''|''P_mut''|''T''|''MP''|''AR''|''beta''|''EP''|''enableAlphaEvolution'' を指定してください。', char(kind));
+        error('未知の指定 "%s" です。''mu_SR''、''Rm_Mg''、またはパラメータ名 ''N''|''NM_G''|''NIPD_M''|''Alpha''|''survivalRate''|''P_mut''|''T''|''MP''|''AR''|''beta''|''EP''|''enableAlphaEvolution''|''enableFixedStrategies'' を指定してください。', char(kind));
 end
 end
 
@@ -98,7 +96,8 @@ end
 function [paramList, paramStrings] = buildGrid(base, xIdx, xVals, yIdx, yVals)
 [Xg, Yg] = ndgrid(xVals, yVals);
 numPP = numel(Xg);
-paramList    = zeros(numPP, 12);
+numParams = numel(fieldnames(base));
+paramList    = zeros(numPP, numParams);
 paramStrings = cell(numPP, 1);
 for i = 1:numPP
     p = fillBase(base);
@@ -112,19 +111,21 @@ end
 
 function p = fillBase(base)
 % Fill parameter vector from base structure
-p = zeros(1,12);
+numParams = numel(fieldnames(base));
+p = zeros(1,numParams);
 p(1)  = base.numAgents;                  % Number of agents
 p(2)  = base.matchesPerGen;              % Matches per generation
 p(3)  = base.roundsPerMatch;             % Rounds per match
 p(4)  = base.learningRate;               % Learning rate
-p(5)  = base.survivalRate;               % Survival rate
+p(5)  = base.survivalRate;               % Survival rate (SR)
 p(6)  = base.mutationRate;               % Mutation rate
-p(7)  = base.temperature;                % Exploration temperature
-p(8)  = base.matchPattern;               % Matching pattern
-p(9)  = base.appearanceRatio;            % Enable appearance bonus (boolean)
+p(7)  = base.temperature;                % Softmax temperature (tau)
+p(8)  = base.matchPattern;               % Matching pattern (0: Random, 1–4: structured)
+p(9)  = base.appearanceRatio;            % Appearance ratio (AR)
 p(10) = base.appearanceBonus;            % Appearance bonus weight
-p(11) = base.evolutionPattern;           % Evolution pattern
+p(11) = base.evolutionPattern;           % Evolution pattern (inheritance type)
 p(12) = base.enableLearningRateEvolution;% Enable learning rate evolution
+p(13) = base.enableFixedStrategies;   % Fixed strategies ON/OFF or. 0: none, 1: TFT, 2: WSLS (Pavlov), 3: AllC, 4: AllD
 end
 
 
@@ -142,6 +143,7 @@ appearanceRatioVal         = p(9);
 appearanceBonus            = p(10);
 evolutionPattern           = p(11);
 enableLearningRateEvolution= p(12);
+enableFixedStrategies      = p(13);
 
 
 % Convert numeric codes to descriptive strings
@@ -172,7 +174,7 @@ switch enableLearningRateEvolution
     case 0
         enableLearningRateEvolutionStr = 'Fixed Learning Rate';
     case 1
-        enableLearningRateEvolutionStr = 'Evolving Learning Rat';
+        enableLearningRateEvolutionStr = 'Evolving Learning Rate';
 end
 
 % Appearance ratio string
@@ -182,13 +184,31 @@ else
     appearanceRatioStr = sprintf('$AR$=%.3f', appearanceRatioVal);
 end
 
+
+switch enableFixedStrategies
+    case 0
+        fixedStrategyStr = 'RL-only';
+    case 1
+        fixedStrategyStr = 'RL+TFT';
+    case 2
+        fixedStrategyStr = 'RL+WSLS';
+    case 3
+        fixedStrategyStr = 'RL+AllC';
+    case 4
+        fixedStrategyStr = 'RL+AllD';
+    otherwise
+        fixedStrategyStr = 'RL+fixed';
+end
+
+
+
 % LaTeX formatted label
 s = sprintf(['$N$=%d, $M_{gen}$=%d, $R_{match}$=%d, $\\alpha$=%.2f, ', ...
     '$SR$=%.2f, $\\mu$=%.3f, $\\tau$=%.3f, %s, ', ...
     '%s, $\\beta$=%.1f, %s, %s'], ...
     numAgents, matchesPerGen, roundsPerMatch, learningRate, survivalRate, ...
     mutationRate, temperature, matchPatternStr, appearanceRatioStr, ...
-    appearanceBonus, evolutionPatternStr, enableLearningRateEvolutionStr);
+    appearanceBonus, evolutionPatternStr, enableLearningRateEvolutionStr, fixedStrategyStr);
 end
 
 
@@ -196,7 +216,7 @@ end
 function vals = defaultSingleVals(name)
 switch char(name)
     case 'numAgents'  % Number of agents
-        vals = [5 10 20 40];
+        vals = [5 10 20 40 80 160];
     case 'matchesPerGen'  % Matches per generation
         vals = [5 10 15 20];
     case 'roundsPerMatch' % Rounds per match
@@ -212,13 +232,15 @@ switch char(name)
     case 'matchPattern'   % Matching pattern
         vals = [0 1 4];  % Example: 0/1/2
     case 'appearanceRatio' % Enable appearance bonus
-        vals = [0.1 0.3 0.5 0.7];  % Example: initial ratio
+        vals = [0 0.25 0.5 0.75];  % Example: initial ratio
     case 'appearanceBonus' % Appearance bonus weight
-        vals = [0 1 2 5];  % Example: bonus magnitude
+        vals = [0 0.25 0.5 0.75 1];  % Example: bonus magnitude
     case 'evolutionPattern'      % Evolution pattern
         vals = [1 2];  % Example: pattern types
     case 'enableLearningRateEvolution' % Enable learning rate evolution
         vals = [0 1];  % ON/OFF
+    case 'enableFixedStrategies'
+        vals = [0 1 2 3 4]; % 0: none, 1: TFT, 2: WSLS (Pavlov), 3: AllC, 4: AllD
     otherwise
         error('Unknown parameter name "%s".', char(name));
 end
@@ -280,6 +302,22 @@ function s = makeLabelSingle(idx, val)
             else
                 s = 'Evolving Learning Rate';
             end
+        case 13
+            switch val
+                case 0
+                    s = 'RL only';
+                case 1
+                    s = 'RL + TFT';
+                case 2
+                    s = 'RL + WSLS';
+                case 3
+                    s = 'RL + AllC';
+                case 4
+                    s = 'RL + AllD';
+                otherwise
+                    s = sprintf('FixedMode=%d', val);
+            end
+
         otherwise
             s = sprintf('Param%d=%.3f', idx, val);
     end
